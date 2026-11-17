@@ -17,6 +17,7 @@ const seed = Number.isFinite(seedParam) ? seedParam : (shot ? 1 : (Date.now() & 
 const rng = createRng(seed);
 const world = new World(rng, sfx);
 
+
 let state = 'title';          // 'title' | 'playing' | 'over'
 let renderScale = 1;
 let bestCombo = 1;
@@ -235,27 +236,58 @@ function autopilot(t) {
 
   input.dx = dx / steer;
   input.dy = dy / steer;
-  input.aimX = aimX;
-  input.aimY = aimY;
-  input.fire = true;
+  // Deliberately imperfect: a wobbling aim and a trigger that pauses now and then, so hostiles
+  // build up on screen the way they do in a real run instead of being picked off at the edges.
+  input.aimX = aimX + Math.cos(t * 3.1) * 26;
+  input.aimY = aimY + Math.sin(t * 2.3) * 26;
+  input.fire = Math.sin(t * 1.7) > -0.3;
 }
 
-function simulate(seconds, stopWhen, revive = false) {
-  const dt = 1 / 120;
-  const steps = Math.round(seconds / dt);
+const DT = 1 / 120;
+
+/**
+ * Rates how good the current frame would look as a mid-game screenshot: hostiles actually inside
+ * the arena, some of them near the ship, debris in the air, bullets in flight, a live multiplier.
+ */
+function framingScore() {
+  if (world.gameOver || world.waveBanner > 0 || world.wave < 3) return -1;
+  let framed = 0;
+  let near = 0;
+  for (const e of world.enemies) {
+    if (e.x > 40 && e.x < W - 40 && e.y > 40 && e.y < H - 40) framed++;
+    if ((e.x - world.player.x) ** 2 + (e.y - world.player.y) ** 2 < 340 * 340) near++;
+  }
+  return Math.min(framed, 8) * 9 +
+    Math.min(near, 4) * 7 +
+    Math.min(world.particles.length, 170) * 0.22 +
+    Math.min(world.bullets.length, 8) * 3 +
+    Math.min(world.combo, 8) * 2.5 +
+    Math.min(world.floaters.length, 3) * 4 +
+    (world.muzzle > 0.02 ? 7 : 0);
+}
+
+function rewind() {
+  world.rng = createRng(seed);
+  world.reset();
+  bestCombo = 1;
+}
+
+/** Runs `steps` simulation ticks starting at absolute tick `from`, keeping the autopilot alive. */
+function advance(steps, from = 0, onStep = null) {
   for (let i = 0; i < steps; i++) {
-    autopilot(i * dt);
-    world.update(dt, input);
-    if (world.combo > bestCombo) bestCombo = world.combo;
-    // The mid-game shot must end on a living ship, so the autopilot gets a safety net.
-    if (revive && world.gameOver) {
+    const k = from + i;
+    autopilot(k * DT);
+    world.update(DT, input);
+    // The shot pilot is not allowed to die during the run-up; these frames are set dressing.
+    if (world.gameOver) {
       world.gameOver = false;
       world.lives = 2;
       world.player.invuln = 1.2;
     }
-    if (stopWhen && stopWhen(i * dt)) return true;
+    if (world.combo > bestCombo) bestCombo = world.combo;
+    if (onStep) onStep(k);
   }
-  return false;
+  return from + steps;
 }
 
 function runShot(mode) {
@@ -267,35 +299,40 @@ function runShot(mode) {
 
   if (mode === 'play') {
     state = 'playing';
-    // Play for a while, then stop on the first frame that reads as a busy firefight. If the ideal
-    // frame never turns up for this seed, settle for a merely busy one.
-    const busy = (enemies, particles, muzzle) => () =>
-      world.wave >= 3 &&
-      world.combo >= 3 &&
-      world.enemies.length >= enemies &&
-      world.particles.length >= particles &&
-      world.bullets.length >= 1 &&
-      world.waveBanner <= 0 &&
-      !world.gameOver &&
-      (!muzzle || world.muzzle > 0.02);
-    simulate(14, null, true);
-    if (!simulate(40, busy(5, 70, true), true)) simulate(25, busy(3, 35, false), true);
+    // Two passes over the same seeded run: the first scores every candidate frame, the second
+    // replays from scratch and stops on the best one. Same seed in, same picture out.
+    const warmup = Math.round(13 / DT);
+    const total = Math.round(52 / DT);
+    let bestAt = total - 1;
+    let bestRating = -Infinity;
+    advance(total, 0, (k) => {
+      if (k < warmup) return;
+      const rating = framingScore();
+      if (rating > bestRating) {
+        bestRating = rating;
+        bestAt = k;
+      }
+    });
+    rewind();
+    advance(bestAt + 1);
     drawFrame();
     return;
   }
 
-  // mode === 'end'
+  // mode === 'end': play a believable run, then let the last life go.
   state = 'playing';
-  simulate(22, null, true);
+  advance(Math.round(24 / DT));
   world.lives = 1;
   world.hurtPlayer();
-  // Let the death bloom expand and the overlay finish fading in.
-  for (let i = 0; i < 132; i++) world.update(1 / 120, input);
+  // Hold just long enough for the death bloom to open and the overlay to finish fading in.
+  for (let i = 0; i < 56; i++) world.update(DT, input);
   state = 'over';
   ui.bestCombo = bestCombo;
   ui.best = null;
   drawFrame();
 }
+
+if (typeof globalThis !== 'undefined') globalThis.__voltProbe = () => ({ state, score: world.score, wave: world.wave, combo: world.combo, enemies: world.enemies.length, particles: world.particles.length, bullets: world.bullets.length, lives: world.lives, rating: framingScore() });
 
 // ------------------------------------------------------------------- start
 

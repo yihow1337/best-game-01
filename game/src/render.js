@@ -183,6 +183,22 @@ function drawBackground(ctx, world, intensity) {
   ctx.shadowBlur = 18;
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, W - 2, H - 2);
+
+  // Corner brackets: a bit of instrument-panel framing around the arena.
+  ctx.globalAlpha = 0.9 * intensity;
+  ctx.strokeStyle = INK.gridHot;
+  ctx.shadowColor = INK.gridHot;
+  ctx.lineWidth = 3;
+  const b = 26;
+  for (const [cx, sx] of [[6, 1], [W - 6, -1]]) {
+    for (const [cy, sy] of [[6, 1], [H - 6, -1]]) {
+      ctx.beginPath();
+      ctx.moveTo(cx + sx * b, cy);
+      ctx.lineTo(cx, cy);
+      ctx.lineTo(cx, cy + sy * b);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 
@@ -557,21 +573,27 @@ function drawWaveBanner(ctx, world) {
 
 // ------------------------------------------------------------------ screens
 
-function drawTitle(ctx, world) {
+function drawTitle(ctx, world, ui) {
   const t = world.time;
   ctx.save();
   ctx.fillStyle = 'rgba(5,6,12,0.55)';
   ctx.fillRect(0, 0, W, H);
 
-  wordmark(ctx, W / 2, 182, 128, (t * 0.22 + 0.28) % 1);
+  wordmark(ctx, W / 2, 176, 126, (t * 0.22 + 0.28) % 1);
 
-  text(ctx, 'NEON SURVIVAL', W / 2, 272, {
+  text(ctx, 'NEON SURVIVAL', W / 2, 294, {
     size: 15, align: 'center', color: '#58c8ff', track: 10, glow: 14,
   });
 
-  const blink = 0.55 + 0.45 * Math.sin(t * 4);
-  text(ctx, 'CLICK OR PRESS SPACE TO START', W / 2, 352, {
-    size: 20, align: 'center', color: '#ffffff', glow: 18, glowColor: '#ffd36a', track: 4, alpha: blink,
+  if (ui.best) {
+    text(ctx, `PERSONAL BEST ${ui.best}`, W / 2, 326, {
+      size: 12, align: 'center', color: INK.gold, track: 4, alpha: 0.85, glow: 10,
+    });
+  }
+
+  const blink = 0.82 + 0.18 * Math.sin(t * 4);
+  text(ctx, 'CLICK OR PRESS SPACE TO START', W / 2, 360, {
+    size: 20, align: 'center', color: '#ffffff', glow: 22, glowColor: '#ffd36a', track: 4, alpha: blink,
   });
 
   const rows = [
@@ -580,7 +602,7 @@ function drawTitle(ctx, world) {
     ['CLICK / HOLD', 'AUTO-FIRE'],
     ['R', 'RESTART'],
   ];
-  const top = 420;
+  const top = 424;
   ctx.globalAlpha = 1;
   rows.forEach((row, i) => {
     const y = top + i * 26;
@@ -595,9 +617,9 @@ function drawTitle(ctx, world) {
 }
 
 function drawGameOver(ctx, world, ui) {
-  const t = Math.min(1, world.deathTime / 0.8);
+  const t = Math.min(1, world.deathTime / 0.45);
   ctx.save();
-  ctx.fillStyle = `rgba(5,6,12,${0.72 * t})`;
+  ctx.fillStyle = `rgba(5,6,12,${0.6 * t})`;
   ctx.fillRect(0, 0, W, H);
 
   text(ctx, 'GAME OVER', W / 2, 206, {
@@ -623,7 +645,7 @@ function drawGameOver(ctx, world, ui) {
     });
   }
 
-  const blink = 0.5 + 0.5 * Math.sin(world.time * 4);
+  const blink = 0.72 + 0.28 * Math.sin(world.time * 4);
   text(ctx, 'PRESS R OR CLICK TO RESTART', W / 2, 496, {
     size: 18, align: 'center', color: '#ffffff', glow: 16, glowColor: '#35d6ff', track: 4, alpha: t * blink,
   });
@@ -670,7 +692,7 @@ export function render(ctx, world, state, ui = {}) {
     drawHud(ctx, world);
     drawWaveBanner(ctx, world);
   }
-  if (state === 'title') drawTitle(ctx, world);
+  if (state === 'title') drawTitle(ctx, world, ui);
   if (state === 'over') drawGameOver(ctx, world, ui);
 
   // Scanlines last: a faint CRT weave that ties the whole frame together.

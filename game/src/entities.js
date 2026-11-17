@@ -442,23 +442,23 @@ export class World {
   }
 
   explosion(x, y, color, radius) {
-    const count = Math.round(14 + radius * 1.1);
+    const count = Math.round(22 + radius * 1.7);
     for (let i = 0; i < count; i++) {
       const a = this.rng.angle();
-      const sp = this.rng.range(50, 90 + radius * 14);
-      const life = this.rng.range(0.25, 0.75);
+      const sp = this.rng.range(60, 130 + radius * 16);
+      const life = this.rng.range(0.3, 0.95);
       this.particles.push({
         x: x + Math.cos(a) * radius * 0.3, y: y + Math.sin(a) * radius * 0.3,
         vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
         life, maxLife: life,
-        size: this.rng.range(1.4, 3.4),
+        size: this.rng.range(1.6, 3.8),
         color: this.rng.chance(0.22) ? '#ffffff' : color,
         kind: this.rng.chance(0.45) ? 'streak' : 'dot',
-        drag: this.rng.range(1.4, 3.2),
+        drag: this.rng.range(1.3, 3.0),
       });
     }
     // A handful of slow embers that linger after the flash is gone.
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 9; i++) {
       const a = this.rng.angle();
       const life = this.rng.range(0.7, 1.4);
       this.particles.push({
