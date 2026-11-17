@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>VOLT</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #05060c;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* A faint radial wash behind the canvas so the letterbox never reads as flat black. */
+    background:
+      radial-gradient(ellipse 120% 80% at 50% 50%, #0b1024 0%, #05060c 60%, #000 100%);
+    touch-action: none;
+    cursor: crosshair;
+  }
+  #stage {
+    display: block;
+    /* Sized in JS to an exact 960x600 fit; the shadow sells the glow past the bezel. */
+    box-shadow: 0 0 0 1px rgba(90, 180, 255, 0.14), 0 0 90px rgba(40, 140, 255, 0.16);
+    background: #05060c;
+  }
+</style>
+</head>
+<body>
+  <canvas id="stage" width="960" height="600" aria-label="VOLT, a neon arcade survival shooter"></canvas>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
