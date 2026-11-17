@@ -332,8 +332,6 @@ function runShot(mode) {
   drawFrame();
 }
 
-if (typeof globalThis !== 'undefined') globalThis.__voltProbe = () => ({ state, score: world.score, wave: world.wave, combo: world.combo, enemies: world.enemies.length, particles: world.particles.length, bullets: world.bullets.length, lives: world.lives, rating: framingScore() });
-
 // ------------------------------------------------------------------- start
 
 resize();

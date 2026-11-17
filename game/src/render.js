@@ -506,7 +506,7 @@ function drawHud(ctx, world) {
     const color = `rgb(255, ${Math.round(220 - hot * 110)}, ${Math.round(110 - hot * 90)})`;
     const label = `x${world.combo}`;
     text(ctx, label, 200, 60, { size: 28 * pop, color, glow: 20, glowColor: color, track: 1 });
-    const bar = Math.max(0, Math.min(1, world.comboTimer / 2.2));
+    const bar = Math.max(0, Math.min(1, world.comboTimer / world.comboMax));
     ctx.globalAlpha = 0.85;
     ctx.fillStyle = color;
     ctx.shadowColor = color;

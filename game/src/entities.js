@@ -57,6 +57,7 @@ export class World {
     this.comboHits = 0;
     this.combo = 1;
     this.comboTimer = 0;
+    this.comboMax = comboWindow(1);
     this.comboPop = 0;
 
     this.time = 0;
@@ -362,7 +363,6 @@ export class World {
     this.score += points;
 
     this.comboHits++;
-    this.comboTimer = 2.2;
     const next = comboFromHits(this.comboHits);
     if (next > this.combo) {
       this.combo = next;
@@ -371,6 +371,10 @@ export class World {
     } else {
       this.combo = next;
     }
+    // The window is recomputed from the multiplier you now hold, so stepping up immediately
+    // shortens the leash you are on.
+    this.comboMax = comboWindow(this.combo);
+    this.comboTimer = this.comboMax;
 
     this.explosion(e.x, e.y, e.type.color, e.radius);
     this.rings.push({
@@ -394,6 +398,7 @@ export class World {
     this.combo = 1;
     this.comboHits = 0;
     this.comboTimer = 0;
+    this.comboMax = comboWindow(1);
     this.shake = 26;
     this.flash = 1;
 
@@ -483,6 +488,7 @@ export class World {
       this.comboHits--;
     }
     this.combo = comboFromHits(this.comboHits);
+    this.comboMax = comboWindow(this.combo);
   }
 
   updateEffects(dt) {
@@ -519,7 +525,16 @@ export class World {
   }
 }
 
-/** Three quick kills per multiplier step, capped so the HUD stays readable. */
+/** Four quick kills per multiplier step, capped so the HUD stays readable. */
 export function comboFromHits(hits) {
-  return Math.min(1 + Math.floor(hits / 3), 12);
+  return Math.min(1 + Math.floor(hits / 4), 10);
+}
+
+/**
+ * How long the chain survives between kills. This tightens as the multiplier climbs -- a relaxed
+ * 2.4s at x1 down to 1.1s at x10 -- so the top of the range is a tightrope rather than a plateau
+ * you reach once and then sit on. Climbing is forgiving; staying up means never stopping to think.
+ */
+export function comboWindow(combo) {
+  return 2.4 - Math.min(combo - 1, 9) * 0.144;
 }
